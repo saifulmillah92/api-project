@@ -1,0 +1,109 @@
+# This workflow uses actions that are not certified by GitHub.  They are
+# provided by a third-party and are governed by separate terms of service,
+# privacy policy, and support documentation.
+#
+# This workflow will install a prebuilt Ruby version, install dependencies, and
+# run tests and linters.
+name: PR Lint
+on: [pull_request]
+
+jobs:
+  RspecTesting:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:12-alpine
+        ports:
+          - "5432:5432"
+        env:
+          POSTGRES_DB: rails_test
+          POSTGRES_USER: rails
+          POSTGRES_PASSWORD: password
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: "postgres://rails:password@localhost:5432/rails_test"
+      GCS_BUCKET_NAME: ${{ vars.GCS_BUCKET_NAME }}
+      GCS_CLIENT_EMAIL: ${{ vars.GCS_CLIENT_EMAIL }}
+      GCS_CLIENT_ID: ${{ vars.GCS_CLIENT_ID }}
+      GCS_PRIVATE_KEY: ${{ vars.GCS_PRIVATE_KEY }}
+      GCS_PRIVATE_KEY_ID: ${{ vars.GCS_PRIVATE_KEY_ID }}
+      GCS_PROJECT_ID: ${{ vars.GCS_PROJECT_ID }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      # Add or replace dependency steps here
+      - name: Install Ruby and gems
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.0.0
+          bundler-cache: true
+      # Add or replace database setup steps here
+      - name: Set up database schema
+        run: bin/rails db:drop db:create db:schema:load --trace
+      # Add or replace test runners here
+      - name: Run tests
+        run: |
+          for file in $(find spec/requests/v1 -name '*_spec.rb'); do
+            bundle exec rspec "$file"
+          done
+
+  # ensure to check the config Workflow permissions https://github.com/user/repo/settings/actions
+  # set it to Read and write permission otherwise it won't work
+  RubocopSuggestions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.0.0
+          bundler-cache: true
+      - name: Run linter
+        id: rubocop
+        run: |
+          git --no-pager diff --name-only "$GITHUB_BASE_REF...$GITHUB_HEAD_REF" \
+              --diff-filter=ACMR \
+            | xargs ls -1 2>/dev/null \
+            | xargs bundle exec rubocop \
+              --force-exclusion \
+              --config .rubocop.yml \
+              --fail-level F \
+              --format progress \
+              --auto-correct
+      - uses: reviewdog/action-suggester@v1
+        with:
+          tool_name: rubocop
+
+  RubocopComments:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.0.0
+          bundler-cache: true
+      - name: Run linter
+        id: rubocop
+        run: |
+          git --no-pager diff --name-only "$GITHUB_BASE_REF...$GITHUB_HEAD_REF" \
+              --diff-filter=ACMR \
+            | xargs ls -1 2>/dev/null \
+            | xargs bundle exec rubocop \
+              --require ./lib/rubocop_diff \
+              --require ./lib/rubocop_rdjson_formatter \
+              --force-exclusion \
+              --config .rubocop.yml \
+              --fail-level F \
+              --format progress \
+              --format RubocopRdjsonFormatter \
+              --out reviewdog.json
+      - uses: reviewdog/action-setup@v1
+      - name: Run reviewdog
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cat reviewdog.json | reviewdog -reporter=github-pr-review -f=rdjson
+      - uses: actions/upload-artifact@v2
+        with:
+          name: reviewdog.json
+          path: reviewdog.json

@@ -1,0 +1,71 @@
+name: Test And Deployment
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  testing:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:12-alpine
+        ports:
+          - "5432:5432"
+        env:
+          POSTGRES_DB: rails_test
+          POSTGRES_USER: rails
+          POSTGRES_PASSWORD: password
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: "postgres://rails:password@localhost:5432/rails_test"
+      GCS_BUCKET_NAME: ${{ vars.GCS_BUCKET_NAME }}
+      GCS_CLIENT_EMAIL: ${{ vars.GCS_CLIENT_EMAIL }}
+      GCS_CLIENT_ID: ${{ vars.GCS_CLIENT_ID }}
+      GCS_PRIVATE_KEY: ${{ vars.GCS_PRIVATE_KEY }}
+      GCS_PRIVATE_KEY_ID: ${{ vars.GCS_PRIVATE_KEY_ID }}
+      GCS_PROJECT_ID: ${{ vars.GCS_PROJECT_ID }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      # Add or replace dependency steps here
+      - name: Install Ruby and gems
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.0.0
+          bundler-cache: true
+      # Add or replace database setup steps here
+      - name: Set up database schema
+        run: bin/rails db:drop db:create db:schema:load --trace
+      # Add or replace test runners here
+      - name: Run tests
+        run: |
+          for file in $(find spec/requests/v1 -name '*_spec.rb'); do
+            bundle exec rspec "$file"
+          done
+
+  # step todo
+  # https://medium.com/swlh/how-to-deploy-your-application-to-digital-ocean-using-github-actions-and-save-up-on-ci-cd-costs-74b7315facc2
+  # deploy:
+  #   needs: testing
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - name: Starting to deploy
+  #       uses: appleboy/ssh-action@v0.1.2
+  #       with:
+  #         host: ${{ secrets.SSH_HOST }}
+  #         key: ${{ secrets.SSH_KEY }}
+  #         username: ${{ secrets.SSH_USERNAME }}
+  #         script: |
+  #           cd api-project
+  #           git pull origin master
+  #           echo 'Pull origin success'
+  #           make build
+  #           echo 'Build new Images'
+  #           make db-prepare
+  #           echo 'Db Prepare'
+  #           make down
+  #           make run
+  #           echo 'Restarting the app'

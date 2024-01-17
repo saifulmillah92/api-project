@@ -1,0 +1,14 @@
+.git/*
+.github/*
+db/*.sqlite3
+db/*.sqlite3-journal
+log/*
+tmp/*
+Dockerfile
+README.rdoc
+kubernetes/
+config/database.yml
+config/application.yml
+config/secrets.yml
+.bundle/
+/docker-compose.yml

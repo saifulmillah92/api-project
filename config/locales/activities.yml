@@ -1,0 +1,4 @@
+---
+notification_users_create:
+  title: "New User: %1s"
+  message: "Hello %1s, this user created by: %2s"

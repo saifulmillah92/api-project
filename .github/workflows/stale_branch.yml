@@ -1,0 +1,13 @@
+name: Stale branch
+
+on: { pull_request: { types: [closed] } }
+
+jobs:
+  Delete:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: dawidd6/action-delete-branch@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.head_ref }}
+        be_kind: true # don't fail on errors (optional)

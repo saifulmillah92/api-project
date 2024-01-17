@@ -1,0 +1,10 @@
+name: 'Assign PR Owner'
+on:
+  pull_request:
+    types: [opened, unassigned]
+
+jobs:
+  assign-owner:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: kentaro-m/auto-assign-action@v1.1.2

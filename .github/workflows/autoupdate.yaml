@@ -1,0 +1,17 @@
+name: autoupdate
+on:
+  push: {}
+jobs:
+  autoupdate:
+    name: autoupdate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker://chinthakagodawita/autoupdate-action:v1
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          DRY_RUN: "false"
+          PR_FILTER: "labelled"
+          PR_LABELS: "In Progress,Waiting for others"
+          MERGE_MSG: "Branch was auto-updated [ci skip]"
+          RETRY_COUNT: "1"
+          MERGE_CONFLICT_ACTION: "ignore"

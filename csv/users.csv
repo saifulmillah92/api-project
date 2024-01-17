@@ -1,0 +1,6 @@
+user_id,user_email_address,user_full_name,user_phone_number,user_state,user_password
+,john@bumilang.it,john,8512345671,active,Password01
+,sansa@bumilang.it,sansa,8512345672,active,Password01
+,arya@bumilang.it,arya,8512345673,active,Password01
+,tyrion@bumilang.it,tyrion,8512345674,active,Password01
+,jamie@bumilang.it,jamie,8512345675,active,Password01
